@@ -1,0 +1,117 @@
+{
+  "collections": [
+    {
+      "name": "users",
+      "description": "Stores user profiles including clients and admins.",
+      "securityRules": {
+        "read": "auth != null",
+        "write": "auth != null && (resource == null || resource.data.role == 'CLIENT' || get(/databases/$(database)/documents/users/$(auth.uid)).data.role == 'ADMIN')"
+      },
+      "fields": [
+        { "name": "name", "type": "string" },
+        { "name": "email", "type": "string" },
+        { "name": "role", "type": "string" },
+        { "name": "avatarUrl", "type": "string", "optional": true }
+      ]
+    },
+    {
+      "name": "itineraries",
+      "description": "Stores travel itineraries.",
+      "securityRules": {
+        "read": "auth != null",
+        "write": "auth != null && get(/databases/$(database)/documents/users/$(auth.uid)).data.role == 'ADMIN'"
+      },
+      "fields": [
+        { "name": "clientId", "type": "string" },
+        { "name": "clientName", "type": "string" },
+        { "name": "clientEmail", "type": "string", "optional": true },
+        { "name": "title", "type": "string" },
+        { "name": "startDate", "type": "string" },
+        { "name": "endDate", "type": "string" },
+        { "name": "destination", "type": "string" },
+        { "name": "activities", "type": "array" }
+      ]
+    },
+    {
+      "name": "feedbacks",
+      "description": "Stores client feedbacks.",
+      "securityRules": {
+        "read": "auth != null",
+        "write": "auth != null"
+      },
+      "fields": [
+        { "name": "clientId", "type": "string" },
+        { "name": "clientName", "type": "string" },
+        { "name": "itineraryId", "type": "string" },
+        { "name": "rating", "type": "number" },
+        { "name": "comment", "type": "string" },
+        { "name": "date", "type": "string" }
+      ]
+    },
+    {
+      "name": "agencyTasks",
+      "description": "Stores agency internal tasks.",
+      "securityRules": {
+        "read": "auth != null && get(/databases/$(database)/documents/users/$(auth.uid)).data.role == 'ADMIN'",
+        "write": "auth != null && get(/databases/$(database)/documents/users/$(auth.uid)).data.role == 'ADMIN'"
+      },
+      "fields": [
+        { "name": "title", "type": "string" },
+        { "name": "description", "type": "string" },
+        { "name": "assignee", "type": "string" },
+        { "name": "dueDate", "type": "string" },
+        { "name": "status", "type": "string" }
+      ]
+    },
+    {
+      "name": "clientPayments",
+      "description": "Stores client payments.",
+      "securityRules": {
+        "read": "auth != null",
+        "write": "auth != null && get(/databases/$(database)/documents/users/$(auth.uid)).data.role == 'ADMIN'"
+      },
+      "fields": [
+        { "name": "clientId", "type": "string" },
+        { "name": "clientName", "type": "string" },
+        { "name": "description", "type": "string" },
+        { "name": "amount", "type": "number" },
+        { "name": "dueDate", "type": "string" },
+        { "name": "status", "type": "string" },
+        { "name": "isInstallmentPlan", "type": "boolean", "optional": true },
+        { "name": "installments", "type": "array", "optional": true }
+      ]
+    },
+    {
+      "name": "clientAlerts",
+      "description": "Stores SOS and urgent alerts sent by clients.",
+      "securityRules": {
+        "read": "auth != null",
+        "write": "auth != null"
+      },
+      "fields": [
+        { "name": "id", "type": "string" },
+        { "name": "clientName", "type": "string" },
+        { "name": "location", "type": "string" },
+        { "name": "message", "type": "string" },
+        { "name": "timestamp", "type": "string" },
+        { "name": "resolved", "type": "boolean" }
+      ]
+    },
+    {
+      "name": "clientDocuments",
+      "description": "Stores documents (passports, vouchers, tickets) attached to clients.",
+      "securityRules": {
+        "read": "auth != null",
+        "write": "auth != null"
+      },
+      "fields": [
+        { "name": "id", "type": "string" },
+        { "name": "clientId", "type": "string" },
+        { "name": "name", "type": "string" },
+        { "name": "type", "type": "string" },
+        { "name": "url", "type": "string" },
+        { "name": "uploadDate", "type": "string" }
+      ]
+    }
+  ]
+}

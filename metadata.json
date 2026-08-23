@@ -1,0 +1,8 @@
+{
+  "name": "RealizzeTravel",
+  "description": "Plataforma premium para agência de viagens com app do cliente e painel administrativo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Default catch-all rule
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Client profiles and accounts
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    // Travel itineraries
+    match /itineraries/{itineraryId} {
+      allow read, write: if true;
+    }
+
+    // Client documents & vouchers
+    match /clientDocuments/{docId} {
+      allow read, write: if true;
+    }
+
+    // Payments and installment plans
+    match /clientPayments/{paymentId} {
+      allow read, write: if true;
+    }
+
+    // Agency internal tasks
+    match /agencyTasks/{taskId} {
+      allow read, write: if true;
+    }
+
+    // Client feedbacks and ratings
+    match /feedbacks/{feedbackId} {
+      allow read, write: if true;
+    }
+
+    // SOS emergency alerts
+    match /clientAlerts/{alertId} {
+      allow read, write: if true;
+    }
+  }
+}
