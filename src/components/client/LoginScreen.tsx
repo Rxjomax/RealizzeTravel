@@ -6,11 +6,12 @@ import { cn } from '../../lib/utils';
 
 export default function LoginScreen() {
   const navigate = useNavigate();
-  const { clients, setCurrentUserEmail, theme, toggleTheme } = useApp();
+  const { clients, setCurrentUserEmail, theme, toggleTheme, systemLicense } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [licenseBlockedMsg, setLicenseBlockedMsg] = useState<string | null>(null);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +25,7 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     setErrorMsg('');
+    setLicenseBlockedMsg(null);
     
     setTimeout(() => {
       setIsLoading(false);
@@ -35,7 +37,21 @@ export default function LoginScreen() {
           return;
         }
 
+        if (clientMatch.role === 'SUPER_ADMIN') {
+          localStorage.setItem('userRole', 'SUPER_ADMIN');
+          localStorage.setItem('userEmail', clientMatch.email);
+          setCurrentUserEmail(clientMatch.email);
+          navigate('/master');
+          return;
+        }
+
         if (clientMatch.role === 'ADMIN') {
+          // Check if system is suspended by developer
+          if (systemLicense?.status === 'SUSPENDED') {
+            setLicenseBlockedMsg(systemLicense.suspensionReason || 'Acesso temporariamente suspenso. Entre em contato com o desenvolvedor do sistema.');
+            return;
+          }
+
           localStorage.setItem('userRole', 'ADMIN');
           localStorage.setItem('userEmail', clientMatch.email);
           setCurrentUserEmail(clientMatch.email);
@@ -130,6 +146,26 @@ export default function LoginScreen() {
             <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 p-3 rounded-lg border border-red-200 dark:border-red-900">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <p className="font-semibold">{errorMsg}</p>
+            </div>
+          )}
+
+          {licenseBlockedMsg && (
+            <div className="space-y-2 text-xs bg-red-900/20 dark:bg-red-950/60 p-4 rounded-xl border border-red-600/40 text-red-700 dark:text-red-300 animate-pulse">
+              <div className="flex items-center gap-2 font-bold text-red-800 dark:text-red-200">
+                <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                <span>ACESSO SUSPENSO PELO DESENVOLVEDOR</span>
+              </div>
+              <p className="text-xs text-red-600 dark:text-red-300/90 leading-relaxed font-medium">
+                {licenseBlockedMsg}
+              </p>
+              {systemLicense?.contactDevEmail && (
+                <div className="pt-2 border-t border-red-800/30 text-[11px] text-red-800 dark:text-red-400">
+                  <p>Contato técnico: <strong>{systemLicense.contactDevEmail}</strong></p>
+                  {systemLicense.contactDevWhatsapp && (
+                    <p>WhatsApp: <strong>{systemLicense.contactDevWhatsapp}</strong></p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

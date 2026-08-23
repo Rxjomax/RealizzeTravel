@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { LayoutDashboard, Copy, MessageSquare, LogOut, Plane, Users, DollarSign, CheckSquare, AlertTriangle, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Copy, MessageSquare, LogOut, Plane, Users, DollarSign, CheckSquare, AlertTriangle, Sun, Moon, Lock, ShieldAlert, Phone, Mail } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { MOCK_USER_ADMIN } from '../../data';
 import { useApp } from '../../context/AppContext';
@@ -9,8 +9,10 @@ import { useApp } from '../../context/AppContext';
 export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { clientAlerts, theme, toggleTheme } = useApp();
+  const { clientAlerts, theme, toggleTheme, systemLicense } = useApp();
   const activeAlertsCount = clientAlerts ? clientAlerts.filter((a: any) => !a.resolved).length : 0;
+  const isSuperAdmin = localStorage.getItem('userRole') === 'SUPER_ADMIN';
+  const isSuspended = systemLicense?.status === 'SUSPENDED' && !isSuperAdmin;
 
   const navItems = [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Visão Geral' },
@@ -26,6 +28,55 @@ export default function AdminLayout() {
     localStorage.removeItem('userRole');
     navigate('/');
   };
+
+  if (isSuspended) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6 select-none font-sans">
+        <div className="max-w-lg w-full bg-slate-900 border border-red-800/80 rounded-2xl p-8 shadow-2xl space-y-6 text-center">
+          <div className="w-16 h-16 bg-red-950/80 border border-red-700/60 rounded-2xl flex items-center justify-center mx-auto text-red-400 shadow-lg shadow-red-900/30">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-2">
+            <span className="px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-xs font-black uppercase tracking-wider">
+              Acesso Temporariamente Suspenso
+            </span>
+            <h1 className="text-xl font-black text-white tracking-tight mt-2">
+              Licença do Sistema Indisponível
+            </h1>
+            <p className="text-sm text-slate-300 font-medium leading-relaxed">
+              {systemLicense?.suspensionReason || 'O acesso ao painel de administração da agência foi suspenso pelo desenvolvedor responsável.'}
+            </p>
+          </div>
+
+          <div className="bg-slate-950 p-5 rounded-xl border border-slate-800 text-left space-y-3 text-xs">
+            <div className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider">
+              Para reativação e regularização do acesso:
+            </div>
+            {systemLicense?.contactDevEmail && (
+              <div className="flex items-center gap-2.5 text-slate-200">
+                <Mail className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span>E-mail: <strong className="text-white font-mono">{systemLicense.contactDevEmail}</strong></span>
+              </div>
+            )}
+            {systemLicense?.contactDevWhatsapp && (
+              <div className="flex items-center gap-2.5 text-slate-200">
+                <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>WhatsApp: <strong className="text-emerald-400 font-mono">{systemLicense.contactDevWhatsapp}</strong></span>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-all border border-slate-700"
+          >
+            Voltar para a Tela de Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex transition-colors duration-200">
@@ -73,9 +124,18 @@ export default function AdminLayout() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-800">
-          <div className="flex items-center gap-3 px-4 py-3 mb-2">
-            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">
+        <div className="p-4 border-t border-slate-800 space-y-2">
+          {localStorage.getItem('userRole') === 'SUPER_ADMIN' && (
+            <button
+              onClick={() => navigate('/master')}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-lg text-xs font-bold transition-all"
+            >
+              <span>⚙️ Voltar ao Portal Master</span>
+            </button>
+          )}
+
+          <div className="flex items-center gap-3 px-4 py-2">
+            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold text-xs">
               A
             </div>
             <div className="flex-1 overflow-hidden">

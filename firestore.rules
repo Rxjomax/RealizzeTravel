@@ -45,5 +45,15 @@ service cloud.firestore {
     match /clientAlerts/{alertId} {
       allow read, write: if true;
     }
+
+    // Developer audit logs & activity tracking
+    match /auditLogs/{logId} {
+      allow read, write: if true;
+    }
+
+    // System configuration & license management
+    match /systemConfig/{configId} {
+      allow read, write: if true;
+    }
   }
 }

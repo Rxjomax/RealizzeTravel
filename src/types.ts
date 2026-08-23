@@ -1,4 +1,46 @@
-export type UserRole = 'CLIENT' | 'ADMIN';
+export type UserRole = 'CLIENT' | 'ADMIN' | 'SUPER_ADMIN';
+
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  userEmail: string;
+  userName: string;
+  userRole: string;
+  actionType: 
+    | 'CREATE_ITINERARY' 
+    | 'UPDATE_ITINERARY' 
+    | 'DELETE_ITINERARY' 
+    | 'CREATE_CLIENT' 
+    | 'UPDATE_CLIENT' 
+    | 'DELETE_CLIENT'
+    | 'CREATE_PAYMENT' 
+    | 'UPDATE_PAYMENT' 
+    | 'CREATE_TASK' 
+    | 'UPDATE_TASK' 
+    | 'ALERT_BROADCAST' 
+    | 'SOS_ALERT' 
+    | 'RESOLVE_ALERT'
+    | 'UPLOAD_DOCUMENT'
+    | 'LOGIN' 
+    | 'LICENSE_CHANGE';
+  targetName?: string;
+  details?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface SystemLicense {
+  id: string;
+  status: 'ACTIVE' | 'SUSPENDED';
+  agencyName: string;
+  planName: string;
+  expiresAt: string;
+  monthlyFee: number;
+  currency: string;
+  suspensionReason?: string;
+  contactDevEmail: string;
+  contactDevWhatsapp?: string;
+  updatedAt: string;
+}
 
 export interface User {
   id: string;

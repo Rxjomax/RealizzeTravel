@@ -32,9 +32,12 @@ import ClientCRMScreen from './components/admin/ClientCRMScreen';
 import AdminTasksScreen from './components/admin/AdminTasksScreen';
 import AdminFinanceScreen from './components/admin/AdminFinanceScreen';
 
-function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode, requiredRole: 'CLIENT' | 'ADMIN' }) {
+// Developer / Super Admin Cockpit
+import DeveloperPortal from './components/master/DeveloperPortal';
+
+function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode, requiredRole: 'CLIENT' | 'ADMIN' | 'SUPER_ADMIN' }) {
   const role = localStorage.getItem('userRole');
-  if (role !== requiredRole) {
+  if (role !== requiredRole && role !== 'SUPER_ADMIN') {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;
@@ -48,6 +51,18 @@ export default function App() {
           <Routes>
             <Route path="/" element={<LoginScreen />} />
             
+            {/* Developer / Master Super Admin Portal */}
+            <Route
+              path="/master"
+              element={
+                <ProtectedRoute requiredRole="SUPER_ADMIN">
+                  <ErrorBoundary fallbackTitle="Erro no Portal do Desenvolvedor">
+                    <DeveloperPortal />
+                  </ErrorBoundary>
+                </ProtectedRoute>
+              }
+            />
+
             {/* Client Mobile App Routes */}
             <Route 
               path="/app" 
