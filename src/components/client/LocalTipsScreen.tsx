@@ -1,9 +1,23 @@
 import React from 'react';
 import { Heart, MapPin, Share2 } from 'lucide-react';
 import { MOCK_TIPS } from '../../data';
+import { useApp } from '../../context/AppContext';
 
 export default function LocalTipsScreen() {
+  const { itineraries, currentUserEmail, clients } = useApp();
   const [liked, setLiked] = React.useState<Record<string, boolean>>({});
+
+  const effectiveEmail = (currentUserEmail || localStorage.getItem('userEmail') || '').trim().toLowerCase();
+  const currentClient = clients.find(c => (c.email || '').trim().toLowerCase() === effectiveEmail);
+
+  // Find user destination
+  const userItineraries = itineraries.filter(it => {
+    const matchEmail = it.clientEmail && it.clientEmail.trim().toLowerCase() === effectiveEmail;
+    const matchName = currentClient?.name && it.clientName && it.clientName.trim().toLowerCase() === currentClient.name.trim().toLowerCase();
+    return matchEmail || matchName;
+  });
+  const activeItinerary = userItineraries[0] || itineraries[0];
+  const destinationCity = activeItinerary?.destination || 'Destino';
 
   const toggleLike = (id: string) => {
     setLiked(prev => ({ ...prev, [id]: !prev[id] }));
@@ -13,7 +27,7 @@ export default function LocalTipsScreen() {
     <div className="min-h-full bg-slate-100 dark:bg-slate-950 pb-8 text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <div className="bg-white dark:bg-slate-900 px-6 pt-12 pb-6 sticky top-0 z-20 border-b border-slate-200 dark:border-slate-800 shadow-sm">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Dicas Locais</h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Recomendações exclusivas da sua agência.</p>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Recomendações exclusivas para {destinationCity}.</p>
       </div>
 
       <div className="mt-4 space-y-6">
@@ -27,7 +41,7 @@ export default function LocalTipsScreen() {
               <div>
                 <p className="font-semibold text-sm text-slate-900 dark:text-slate-100">Guia Especialista</p>
                 <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 gap-1">
-                  <MapPin className="w-3 h-3 text-blue-500" /> Paris
+                  <MapPin className="w-3 h-3 text-blue-500" /> {destinationCity}
                 </div>
               </div>
             </div>

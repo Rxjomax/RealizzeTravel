@@ -20,59 +20,50 @@ export default function ItineraryScreen() {
   const { itineraries, currentUserEmail, clients } = useApp();
   
   // Find logged in client data
-  const effectiveEmail = currentUserEmail || localStorage.getItem('userEmail') || '';
+  const effectiveEmail = (currentUserEmail || localStorage.getItem('userEmail') || '').trim().toLowerCase();
   const currentClient = clients.find(c => 
-    (c.email || '').trim().toLowerCase() === effectiveEmail.trim().toLowerCase()
+    (c.email || '').trim().toLowerCase() === effectiveEmail
   );
 
-  // Find all itineraries assigned to this user (by email, by client name, or by client ID)
-  const userItineraries = useMemo(() => {
-    if (!effectiveEmail && !currentClient) return itineraries;
-    const cleanUserEmail = effectiveEmail.trim().toLowerCase();
+  // STRICT ISOLATION: Find ONLY the itinerary specifically assigned to this logged-in passenger
+  const activeItinerary = useMemo(() => {
+    if (!effectiveEmail && !currentClient) {
+      return itineraries[0];
+    }
+
     const cleanUserName = (currentClient?.name || '').trim().toLowerCase();
     const clientId = currentClient?.id || '';
 
-    const matched = itineraries.filter(it => {
-      const matchEmail = it.clientEmail && it.clientEmail.trim().toLowerCase() === cleanUserEmail;
+    // Match strictly by client email, client name or client ID
+    const userMatches = itineraries.filter(it => {
+      const matchEmail = it.clientEmail && it.clientEmail.trim().toLowerCase() === effectiveEmail;
       const matchName = cleanUserName && it.clientName && it.clientName.trim().toLowerCase() === cleanUserName;
       const matchId = clientId && it.clientId && it.clientId === clientId;
       return matchEmail || matchName || matchId;
     });
 
-    // If user has specific itineraries, sort newest first (by id timestamp or startDate)
-    if (matched.length > 0) {
-      return [...matched].sort((a, b) => {
-        // Priority to client's nextTrip in CRM
+    if (userMatches.length > 0) {
+      // If user has matches, return the assigned one (prioritizing the one matching nextTrip or the most recent)
+      const sorted = [...userMatches].sort((a, b) => {
         const isANext = currentClient?.nextTrip && a.destination?.toLowerCase().includes(currentClient.nextTrip.toLowerCase());
         const isBNext = currentClient?.nextTrip && b.destination?.toLowerCase().includes(currentClient.nextTrip.toLowerCase());
         if (isANext && !isBNext) return -1;
         if (!isANext && isBNext) return 1;
-
-        // Otherwise latest ID / date
         return (b.id || '').localeCompare(a.id || '') || (b.startDate || '').localeCompare(a.startDate || '');
       });
+      return sorted[0];
     }
 
-    // If no direct match found (e.g. preview mode or admin viewing app), return all itineraries
-    return itineraries;
+    // Fallback: If user has a nextTrip defined in CRM, look for an itinerary with that destination
+    if (currentClient?.nextTrip && currentClient.nextTrip !== 'Nenhuma' && currentClient.nextTrip !== 'Não definida') {
+      const destMatch = itineraries.find(it => 
+        it.destination?.toLowerCase().includes(currentClient.nextTrip.toLowerCase())
+      );
+      if (destMatch) return destMatch;
+    }
+
+    return itineraries[0];
   }, [itineraries, effectiveEmail, currentClient]);
-
-  const [selectedItineraryId, setSelectedItineraryId] = useState<string>('');
-
-  // Default to the first (newest) user itinerary if not set or invalid
-  const activeItinerary = useMemo(() => {
-    if (selectedItineraryId) {
-      const found = userItineraries.find(it => it.id === selectedItineraryId);
-      if (found) return found;
-    }
-    return userItineraries.length > 0 ? userItineraries[0] : itineraries[0];
-  }, [selectedItineraryId, userItineraries, itineraries]);
-
-  useEffect(() => {
-    if (userItineraries.length > 0 && (!selectedItineraryId || !userItineraries.some(i => i.id === selectedItineraryId))) {
-      setSelectedItineraryId(userItineraries[0].id);
-    }
-  }, [userItineraries, selectedItineraryId]);
   
   const [activities, setActivities] = useState<Activity[]>(activeItinerary?.activities || []);
   const [weather, setWeather] = useState<LiveWeather>({
@@ -264,39 +255,6 @@ export default function ItineraryScreen() {
     <div className="min-h-full bg-slate-50 dark:bg-slate-950 relative flex flex-col text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <div className="w-full max-w-4xl mx-auto flex flex-col min-h-full pb-8">
         
-        {/* Multi-trip selector banner if client has more than 1 itinerary */}
-        {userItineraries.length > 1 && (
-          <div className="mb-4 px-3 md:px-0">
-            <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2 scrollbar-none">
-              <div className="flex items-center gap-1.5 shrink-0 text-xs font-bold text-slate-500 dark:text-slate-400 mr-2">
-                <Plane className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                <span>Minhas Viagens:</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {userItineraries.map((it) => {
-                  const isSelected = it.id === activeItinerary.id;
-                  return (
-                    <button
-                      key={it.id}
-                      onClick={() => setSelectedItineraryId(it.id)}
-                      className={cn(
-                        "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 border",
-                        isSelected
-                          ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                          : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
-                      )}
-                    >
-                      <MapPin className="w-3 h-3" />
-                      <span>{it.destination || it.title}</span>
-                      {isSelected && <span className="text-[10px] bg-blue-500/80 px-1.5 py-0.2 rounded-sm font-semibold">Ativo</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Header / Automatic Live Weather Banner (Bespoke Clean Design) */}
         <div className="bg-slate-900 dark:bg-slate-900 border border-slate-800 p-5 md:p-6 md:rounded-xl text-white shrink-0 shadow-xs mb-6">
           <div className="flex justify-between items-start mb-4">
