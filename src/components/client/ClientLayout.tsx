@@ -1,15 +1,23 @@
 import React from 'react';
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Map, Wallet, Bookmark, Briefcase, ShieldAlert, AlertTriangle, X, Star, Languages, Sun, Moon } from 'lucide-react';
+import { Map, Wallet, Bookmark, Briefcase, ShieldAlert, AlertTriangle, X, Star, Languages, Sun, Moon, LogOut } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import SOSModal from './SOSModal';
 import { useApp } from '../../context/AppContext';
 
 export default function ClientLayout() {
   const [isSOSOpen, setIsSOSOpen] = React.useState(false);
-  const { globalAlert, setGlobalAlert, theme, toggleTheme } = useApp();
+  const { globalAlert, setGlobalAlert, theme, toggleTheme, currentUserEmail, setCurrentUserEmail } = useApp();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userEmail');
+    setCurrentUserEmail(null);
+    navigate('/');
+  };
 
   const navItems = [
     { to: '/app/itinerary', icon: Map, label: 'Roteiro' },
@@ -36,7 +44,7 @@ export default function ClientLayout() {
         </div>
       )}
 
-      {/* Top Header with Theme Switcher for Mobile / Desktop */}
+      {/* Top Header with Theme Switcher & Logout for Mobile */}
       <div className="h-12 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between shrink-0 md:hidden z-30">
         <span className="font-bold text-xs tracking-wide text-slate-900 dark:text-slate-100">
           Realizze<span className="text-blue-600 dark:text-blue-400">Travel</span>
@@ -55,6 +63,13 @@ export default function ClientLayout() {
             title={theme === 'dark' ? 'Mudar para Modo Claro' : 'Mudar para Modo Escuro'}
           >
             {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+          </button>
+          <button
+            onClick={handleLogout}
+            className="p-1.5 text-slate-400 hover:text-red-500 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            title="Sair da Conta"
+          >
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -99,10 +114,19 @@ export default function ClientLayout() {
           {/* Desktop SOS Button */}
           <button
             onClick={() => setIsSOSOpen(true)}
-            className="hidden md:flex flex-row items-center justify-center md:justify-start px-3 py-2.5 mt-auto mb-3 md:mb-0 md:mt-6 w-full rounded-lg bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900 hover:bg-red-100 dark:hover:bg-red-900/60 font-semibold text-xs active:scale-95 transition-all"
+            className="hidden md:flex flex-row items-center justify-center md:justify-start px-3 py-2.5 mt-auto mb-2 w-full rounded-lg bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900 hover:bg-red-100 dark:hover:bg-red-900/60 font-semibold text-xs active:scale-95 transition-all"
           >
             <ShieldAlert className="w-4 h-4 shrink-0 mr-2" />
             <span className="hidden lg:block">Emergência (SOS)</span>
+          </button>
+
+          {/* Desktop Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="hidden md:flex flex-row items-center justify-center md:justify-start px-3 py-2 w-full rounded-lg text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold text-xs transition-colors"
+          >
+            <LogOut className="w-4 h-4 shrink-0 mr-2" />
+            <span className="hidden lg:block">Sair da Conta</span>
           </button>
         </div>
       </nav>

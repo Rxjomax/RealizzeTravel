@@ -43,12 +43,13 @@ export default function CreateItineraryScreen() {
     
     setTimeout(() => {
       const [parsedName, parsedEmail] = clientName.split('|');
+      const matchedClient = clients.find(c => (c.email || '').toLowerCase() === (parsedEmail || '').toLowerCase());
 
       const newItinerary: Itinerary = {
         id: `it_${Date.now()}`,
-        clientId: `u_${Date.now()}`,
-        clientName: parsedName || 'Sem Nome',
-        clientEmail: parsedEmail || '',
+        clientId: matchedClient?.id || `u_${Date.now()}`,
+        clientName: matchedClient?.name || parsedName || 'Sem Nome',
+        clientEmail: (matchedClient?.email || parsedEmail || '').trim().toLowerCase(),
         title: `Roteiro: ${destination}`,
         destination,
         startDate,
@@ -91,9 +92,11 @@ export default function CreateItineraryScreen() {
                 className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 font-medium text-slate-900 dark:text-slate-100 transition-all cursor-pointer"
               >
                 <option value="" disabled className="dark:bg-slate-900">Selecione um cliente...</option>
-                {clients.map(c => (
-                  <option key={c.id} value={`${c.name}|${c.email}`} className="dark:bg-slate-900">{c.name} ({c.email})</option>
-                ))}
+                {clients
+                  .filter(c => c.role === 'CLIENT' || (!c.role && c.email !== 'dev@master.com' && c.email !== 'admin@agencia.com'))
+                  .map(c => (
+                    <option key={c.id} value={`${c.name}|${c.email}`} className="dark:bg-slate-900">{c.name} ({c.email})</option>
+                  ))}
               </select>
             </div>
             
