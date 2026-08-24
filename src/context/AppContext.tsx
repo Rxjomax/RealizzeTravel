@@ -401,6 +401,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setKpis((prev: any) => ({ ...prev, ...newKpis }));
   }, []);
 
+  const addClient = useCallback(async (client: any) => {
+    const newId = client.id || `client_${Date.now()}`;
+    const newClientObj = {
+      ...client,
+      id: newId,
+      role: client.role || 'CLIENT',
+      password: client.password || '123456'
+    };
+    setClients(prev => {
+      const exists = prev.some(c => c.id === newId || c.email === newClientObj.email);
+      if (exists) {
+        return prev.map(c => (c.id === newId || c.email === newClientObj.email) ? { ...c, ...newClientObj } : c);
+      }
+      return [...prev, newClientObj];
+    });
+    try {
+      await setDoc(doc(db, 'users', newId), newClientObj, { merge: true });
+      await logAuditEvent('CREATE_CLIENT', newClientObj.name, `E-mail: ${newClientObj.email} | Próxima Viagem: ${newClientObj.nextTrip || 'Não definida'}`);
+    } catch (err) {
+      console.warn("Aviso ao cadastrar cliente no Firestore:", err);
+    }
+  }, [logAuditEvent]);
+
+  const updateClient = useCallback(async (id: string, updates: any) => {
+    setClients(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+    try {
+      await setDoc(doc(db, 'users', id), updates, { merge: true });
+      const client = clients.find(c => c.id === id);
+      await logAuditEvent('UPDATE_CLIENT', client?.name || id, `Dados do cliente atualizados`);
+    } catch (err) {
+      console.warn("Aviso ao atualizar cliente no Firestore:", err);
+    }
+  }, [clients, logAuditEvent]);
+
   const addItinerary = useCallback(async (itinerary: Itinerary) => {
     setItineraries(prev => {
       const exists = prev.some(i => i.id === itinerary.id);
@@ -409,11 +443,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       await setDoc(doc(db, 'itineraries', itinerary.id), itinerary);
       await logAuditEvent('CREATE_ITINERARY', itinerary.title, `Destino: ${itinerary.destination} | Cliente: ${itinerary.clientName} (${itinerary.activities?.length || 0} atividades)`);
+      
+      // Also sync nextTrip to the matched CRM client if applicable
+      const matchedClient = clients.find(c => 
+        (itinerary.clientEmail && c.email?.toLowerCase() === itinerary.clientEmail.toLowerCase()) ||
+        (itinerary.clientName && c.name?.toLowerCase() === itinerary.clientName.toLowerCase())
+      );
+      if (matchedClient) {
+        await updateClient(matchedClient.id, {
+          nextTrip: itinerary.destination,
+          tripStatus: 'Em Planejamento'
+        });
+      }
     } catch (err) {
       console.warn("Aviso ao salvar roteiro no Firestore:", err);
     }
-  }, [logAuditEvent]);
-
+  }, [clients, logAuditEvent, updateClient]);
   const deleteItinerary = useCallback(async (id: string) => {
     const item = itineraries.find(i => i.id === id);
     setItineraries(prev => prev.filter(i => i.id !== id));
@@ -432,28 +477,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await logAuditEvent('LOGIN', feedback.clientName, `Feedback enviado - Nota ${feedback.rating}/5`);
     } catch (err) {
       console.warn("Aviso ao salvar feedback no Firestore:", err);
-    }
-  }, [logAuditEvent]);
-
-  const addClient = useCallback(async (client: any) => {
-    const newId = client.id || `client_${Date.now()}`;
-    const newClientObj = { ...client, id: newId };
-    setClients(prev => [...prev, newClientObj]);
-    try {
-      await setDoc(doc(db, 'users', newId), newClientObj);
-      await logAuditEvent('CREATE_CLIENT', client.name, `E-mail: ${client.email} | Próxima Viagem: ${client.nextTrip || 'Não definida'}`);
-    } catch (err) {
-      console.warn("Aviso ao cadastrar cliente no Firestore:", err);
-    }
-  }, [logAuditEvent]);
-
-  const updateClient = useCallback(async (id: string, updates: any) => {
-    setClients(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-    try {
-      await updateDoc(doc(db, 'users', id), updates);
-      await logAuditEvent('UPDATE_CLIENT', updates.name || id, `Dados do passageiro atualizados`);
-    } catch (err) {
-      console.warn("Aviso ao atualizar cliente no Firestore:", err);
     }
   }, [logAuditEvent]);
 

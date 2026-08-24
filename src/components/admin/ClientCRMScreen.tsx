@@ -37,6 +37,8 @@ export default function ClientCRMScreen() {
       id: Date.now().toString(),
       name: newClient.name,
       email: newClient.email,
+      role: 'CLIENT',
+      password: '123456',
       nextTrip: newClient.nextTrip || 'Nenhuma',
       tripStatus: newClient.tripStatus,
       lastTrip: 'Nenhuma',

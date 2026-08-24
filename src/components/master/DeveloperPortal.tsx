@@ -141,7 +141,10 @@ export default function DeveloperPortal() {
 
   // Calculate total volume
   const totalRevenueLogged = clientPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
-  const agencyClients = clients.filter(c => c.role === 'CLIENT');
+  const agencyClients = clients.filter(c => 
+    c.role === 'CLIENT' || 
+    (!c.role && c.email !== 'admin@agencia.com' && c.email !== 'dev@master.com')
+  );
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white">

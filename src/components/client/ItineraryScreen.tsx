@@ -17,10 +17,21 @@ interface LiveWeather {
 }
 
 export default function ItineraryScreen() {
-  const { itineraries, currentUserEmail } = useApp();
+  const { itineraries, currentUserEmail, clients } = useApp();
   
-  // Find itinerary for the current logged in user, fallback to latest if none found
-  const userItineraries = itineraries.filter(it => it.clientEmail === currentUserEmail);
+  // Find logged in client data
+  const currentClient = clients.find(c => 
+    (c.email || '').trim().toLowerCase() === (currentUserEmail || '').trim().toLowerCase()
+  );
+
+  // Find itinerary for the current logged in user: by email OR by client name, fallback to first if none found
+  const userItineraries = itineraries.filter(it => {
+    if (!currentUserEmail) return false;
+    const cleanUserEmail = currentUserEmail.trim().toLowerCase();
+    const matchesEmail = it.clientEmail && it.clientEmail.trim().toLowerCase() === cleanUserEmail;
+    const matchesName = currentClient?.name && it.clientName && it.clientName.trim().toLowerCase() === currentClient.name.trim().toLowerCase();
+    return matchesEmail || matchesName;
+  });
   const activeItinerary = userItineraries.length > 0 ? userItineraries[0] : itineraries[0];
   
   const [activities, setActivities] = useState<Activity[]>(activeItinerary?.activities || []);
