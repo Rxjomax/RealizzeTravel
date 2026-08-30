@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapPin, CheckCircle2, Circle, Navigation, CloudRain, Clock, Calendar as CalendarIcon, Sun, Cloud, CloudSnow, CloudLightning, Wind, Droplets, Plane } from 'lucide-react';
+import { MapPin, CheckCircle2, Circle, Navigation, CloudRain, Clock, Calendar as CalendarIcon, Sun, Cloud, CloudSnow, CloudLightning, Wind, Droplets, Plane, Compass } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
@@ -43,7 +43,6 @@ export default function ItineraryScreen() {
     });
 
     if (userMatches.length > 0) {
-      // If user has matches, return the assigned one (prioritizing the one matching nextTrip or the most recent)
       const sorted = [...userMatches].sort((a, b) => {
         const isANext = currentClient?.nextTrip && a.destination?.toLowerCase().includes(currentClient.nextTrip.toLowerCase());
         const isBNext = currentClient?.nextTrip && b.destination?.toLowerCase().includes(currentClient.nextTrip.toLowerCase());
@@ -54,7 +53,6 @@ export default function ItineraryScreen() {
       return sorted[0];
     }
 
-    // Fallback: If user has a nextTrip defined in CRM, look for an itinerary with that destination
     if (currentClient?.nextTrip && currentClient.nextTrip !== 'Nenhuma' && currentClient.nextTrip !== 'Não definida') {
       const destMatch = itineraries.find(it => 
         it.destination?.toLowerCase().includes(currentClient.nextTrip.toLowerCase())
@@ -88,7 +86,6 @@ export default function ItineraryScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  // Helper for weather icons and portuguese text based on Open-Meteo codes
   const getWeatherInfo = (code: number) => {
     switch (code) {
       case 0: return { desc: 'Céu Limpo', icon: Sun };
@@ -116,7 +113,6 @@ export default function ItineraryScreen() {
     }
   };
 
-  // Helper to resolve city query for countries/cities
   const resolveCityQuery = (dest: string) => {
     const clean = dest.split(',')[0].trim();
     const lower = clean.toLowerCase();
@@ -139,7 +135,6 @@ export default function ItineraryScreen() {
       const cleanCity = resolveCityQuery(destinationStr);
 
       try {
-        // Geocoding
         const geoRes = await fetch(
           `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanCity)}&count=1&language=pt`
         );
@@ -158,7 +153,6 @@ export default function ItineraryScreen() {
           }
         }
 
-        // Forecast with timezone=auto
         const weatherRes = await fetch(
           `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&timezone=auto`
         );
@@ -196,7 +190,6 @@ export default function ItineraryScreen() {
     return () => { isMounted = false; };
   }, [activeItinerary?.destination]);
 
-  // Update local state if active itinerary changes
   useEffect(() => {
     setActivities(activeItinerary?.activities || []);
   }, [activeItinerary]);
@@ -241,7 +234,6 @@ export default function ItineraryScreen() {
     window.open(url, '_blank');
   };
 
-  // Group by date
   const groupedActivities = activities.reduce((acc, curr) => {
     const dateKey = curr.date || 'Data não definida';
     if (!acc[dateKey]) acc[dateKey] = [];
@@ -253,111 +245,151 @@ export default function ItineraryScreen() {
 
   return (
     <div className="min-h-full bg-slate-50 dark:bg-slate-950 relative flex flex-col text-slate-900 dark:text-slate-100 transition-colors duration-200">
-      <div className="w-full max-w-4xl mx-auto flex flex-col min-h-full pb-8">
+      <div className="w-full max-w-4xl mx-auto flex flex-col min-h-full pb-12 px-4 sm:px-6">
         
-        {/* Header / Automatic Live Weather Banner (Bespoke Clean Design) */}
-        <div className="bg-slate-900 dark:bg-slate-900 border border-slate-800 p-5 md:p-6 md:rounded-xl text-white shrink-0 shadow-xs mb-6">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-200">
-                <MapPin className="w-4 h-4 text-blue-400" />
-                {activeItinerary.destination || 'Paris, França'}
-              </div>
-              <span className="text-[10px] text-slate-400 font-semibold tracking-wide uppercase">Previsão do Tempo • Destino</span>
+        {/* Dynamic Hero Header */}
+        <header className="pt-6 sm:pt-8 pb-6 mb-6">
+          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-blue-500/10 relative overflow-hidden">
+            <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute top-4 right-4 bg-white/15 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 border border-white/20">
+              <Compass className="w-3.5 h-3.5" />
+              <span>Roteiro Concierge</span>
             </div>
 
-            <div className="text-right">
-              <span className="text-xs font-mono font-bold flex items-center justify-end text-blue-300">
-                <Clock className="w-3.5 h-3.5 mr-1 text-blue-400 shrink-0" />
-                {getDestinationTime()}
-              </span>
-              <div className="text-[10px] text-slate-400 font-medium">
-                Horário Local no Destino ({timezoneAbbr}) • {getDestinationDate()}
+            <div className="space-y-2 relative z-10 max-w-xl">
+              <div className="flex items-center gap-2 text-blue-100 text-xs font-bold uppercase tracking-wider">
+                <MapPin className="w-3.5 h-3.5" />
+                <span>{activeItinerary.destination || 'Santiago, Chile'}</span>
               </div>
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-slate-800/80 px-2.5 py-0.5 rounded-md mt-1 border border-slate-700">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Dados em Tempo Real
-              </span>
+              
+              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
+                {activeItinerary.title || activeItinerary.destination}
+              </h1>
+              
+              <p className="text-blue-100/90 text-xs sm:text-sm leading-relaxed">
+                Acompanhe o seu itinerário dia a dia com mapa GPS integrado e clima em tempo real.
+              </p>
             </div>
-          </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-slate-800/80 border border-slate-700 rounded-lg">
-                <WeatherIcon className="w-8 h-8 text-amber-400 shrink-0" />
-              </div>
-              <div>
-                <div className="text-2xl md:text-4xl font-extrabold tracking-tight">
-                  {weather.temp}°C
+            {/* Weather & Time Capsule */}
+            <div className="mt-6 pt-6 border-t border-white/15 grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 flex items-center justify-between border border-white/15">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-xl">
+                    <Clock className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white block">Hora Local</span>
+                    <span className="text-lg font-extrabold tracking-tight text-white">{getDestinationTime()}</span>
+                  </div>
                 </div>
-                <p className="text-xs font-medium text-slate-300 mt-0.5">{weather.desc}</p>
+                <span className="text-xs text-blue-100 font-medium capitalize">{getDestinationDate()}</span>
               </div>
-            </div>
 
-            <div className="text-right text-xs text-slate-300 space-y-1">
-              <div>
-                Max: <span className="font-bold text-white">{weather.max}°</span> Min: <span className="font-bold text-white">{weather.min}°</span>
-              </div>
-              <div className="text-[11px] text-slate-400 font-medium">
-                Umidade: {weather.humidity}% • Vento: {weather.wind} km/h
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 flex items-center justify-between border border-white/15">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-xl">
+                    <WeatherIcon className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white block capitalize">{weather.desc}</span>
+                    <span className="text-lg font-extrabold tracking-tight text-white">{weather.temp}°C</span>
+                  </div>
+                </div>
+                <div className="text-right text-xs text-blue-100">
+                  <span className="font-semibold">{weather.min}° / {weather.max}°</span>
+                  <span className="block text-[11px] opacity-80">Hum: {weather.humidity}%</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Timeline List */}
-        <div className="flex-1 px-4 md:px-8 overflow-y-auto space-y-6">
+        {/* Chronological Activities Timeline */}
+        <div className="flex-1 space-y-8">
           {Object.entries(groupedActivities).map(([date, acts]: [string, Activity[]]) => (
-            <div key={date}>
-              <div className="text-[10px] uppercase font-bold text-slate-400 mb-2">
-                {date !== 'Data não definida' ? format(parseISO(date), "EEEE, dd 'de' MMMM", { locale: ptBR }) : date}
+            <section key={date} className="space-y-3">
+              {/* Date Header */}
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <h2 className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200 capitalize">
+                    {date !== 'Data não definida' ? format(parseISO(date), "EEEE, dd 'de' MMMM", { locale: ptBR }) : date}
+                  </h2>
+                </div>
+                <span className="text-xs font-semibold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full">
+                  {acts.length} {acts.length === 1 ? 'atividade' : 'atividades'}
+                </span>
               </div>
               
               <div className="space-y-3">
                 {acts.map((act) => (
-                  <div 
+                  <article 
                     key={act.id} 
                     className={cn(
-                      "bg-white dark:bg-slate-900 p-4 rounded-xl border transition-all shadow-xs",
-                      act.isCompleted ? "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 opacity-60" : "border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                      "bg-white dark:bg-slate-900 p-5 rounded-2xl border transition-all duration-200 shadow-xs relative overflow-hidden",
+                      act.isCompleted 
+                        ? "border-slate-200/60 dark:border-slate-800/40 bg-slate-50/60 dark:bg-slate-950/40 opacity-60" 
+                        : "border-slate-200 dark:border-slate-800 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700"
                     )}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
-                        {act.time || 'Horário livre'}
-                      </span>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1.5 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-0.5 rounded-lg">
+                            {act.time || 'Horário Livre'}
+                          </span>
+                          {act.location && (
+                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate max-w-xs flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-slate-400" />
+                              {act.location}
+                            </span>
+                          )}
+                        </div>
+
+                        <h3 className={cn(
+                          "text-base font-bold text-slate-900 dark:text-slate-100 leading-snug", 
+                          act.isCompleted && "line-through text-slate-400 dark:text-slate-500"
+                        )}>
+                          {act.title}
+                        </h3>
+
+                        {act.description && (
+                          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed pt-0.5">
+                            {act.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Completed Toggle Button */}
                       <button 
                         onClick={() => toggleChecklist(act.id)}
-                        className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                        className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-transform active:scale-90 shrink-0"
                         title={act.isCompleted ? "Marcar como pendente" : "Marcar como concluído"}
                       >
                         {act.isCompleted ? (
-                          <div className="w-5 h-5 rounded-md bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">✓</div>
+                          <CheckCircle2 className="w-6 h-6 text-emerald-500 fill-emerald-100 dark:fill-emerald-950" />
                         ) : (
-                          <div className="w-5 h-5 rounded-md bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 hover:border-slate-400"></div>
+                          <Circle className="w-6 h-6 text-slate-300 dark:text-slate-600 hover:text-blue-500" />
                         )}
                       </button>
                     </div>
                     
-                    <div className={cn("text-xs font-bold text-slate-900 dark:text-slate-100 mt-2", act.isCompleted && "line-through text-slate-400 dark:text-slate-500 decoration-slate-300 dark:decoration-slate-600")}>
-                      {act.title}
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                      {act.location} {act.location && act.description ? '•' : ''} {act.description}
-                    </div>
-                    
                     {!act.isCompleted && act.mapLink && (
-                      <button
-                        onClick={() => openGPS(act.mapLink)}
-                        className="mt-3 w-full py-2 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 text-xs rounded-lg font-semibold flex items-center justify-center gap-1.5 transition-all shadow-xs active:translate-y-0.5"
-                      >
-                        <Navigation className="w-3.5 h-3.5" />
-                        <span>Abrir no GPS</span>
-                      </button>
+                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <button
+                          onClick={() => openGPS(act.mapLink)}
+                          className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Navigation className="w-3.5 h-3.5" />
+                          <span>Abrir no GPS / Google Maps</span>
+                        </button>
+                      </div>
                     )}
-                  </div>
+                  </article>
                 ))}
               </div>
-            </div>
+            </section>
           ))}
         </div>
       </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plane, Lock, Mail, ArrowRight, AlertCircle, Sun, Moon } from 'lucide-react';
+import { Plane, Lock, Mail, ArrowRight, AlertCircle, Sun, Moon, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { cn } from '../../lib/utils';
 
@@ -46,7 +46,6 @@ export default function LoginScreen() {
         }
 
         if (clientMatch.role === 'ADMIN') {
-          // Check if system is suspended by developer
           if (systemLicense?.status === 'SUSPENDED') {
             setLicenseBlockedMsg(systemLicense.suspensionReason || 'Acesso temporariamente suspenso. Entre em contato com o desenvolvedor do sistema.');
             return;
@@ -65,140 +64,151 @@ export default function LoginScreen() {
       } else {
         setErrorMsg('E-mail não encontrado. Verifique a digitação ou contate o administrador.');
       }
-    }, 600);
+    }, 450);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center px-6 sm:px-12 relative overflow-hidden text-slate-900 dark:text-slate-100 w-full transition-colors duration-200">
-      {/* Theme Toggle Button Top Right */}
-      <div className="absolute top-4 right-4 z-20">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center px-4 sm:px-6 relative overflow-hidden selection:bg-blue-500/30">
+      {/* Subtle architectural grid & ambient glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
+      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Theme Toggle Top Right */}
+      <div className="absolute top-5 right-5 z-20">
         <button
           onClick={toggleTheme}
-          className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 shadow-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-all flex items-center gap-2 text-xs font-semibold"
+          className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-white backdrop-blur-md hover:bg-slate-800 transition-all flex items-center gap-2 text-xs font-semibold"
           title={theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
         >
           {theme === 'dark' ? (
-            <>
-              <Sun className="w-4 h-4 text-amber-400" />
-              <span>Modo Claro</span>
-            </>
+            <Sun className="w-4 h-4 text-amber-400" />
           ) : (
-            <>
-              <Moon className="w-4 h-4 text-slate-600" />
-              <span>Modo Escuro</span>
-            </>
+            <Moon className="w-4 h-4 text-slate-300" />
           )}
         </button>
       </div>
 
-      {/* Background decoration */}
-      <div className="absolute top-[-10%] left-[-20%] w-[140%] h-[50%] bg-blue-100/50 dark:bg-blue-950/20 rounded-full blur-3xl pointer-events-none" />
-      
-      <div className="z-10 w-full max-w-sm mx-auto space-y-12">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-20 h-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-center shadow-xs mb-6 transform -rotate-3">
-            <Plane className="w-9 h-9 text-blue-600 dark:text-blue-400 rotate-3" />
+      {/* Centered Login Card */}
+      <div className="relative z-10 w-full max-w-md">
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl space-y-8">
+          {/* Header Brand */}
+          <div className="space-y-4 text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-b from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-600/20 border border-blue-400/30">
+              <Plane className="w-7 h-7" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-white">
+                Realizze<span className="text-blue-400 font-medium">Travel</span>
+              </h1>
+              <p className="text-slate-400 text-xs mt-1 font-medium">
+                Acesse seus roteiros, vouchers e assistente de viagem
+              </p>
+            </div>
           </div>
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Bem-vindo(a)</h1>
-            <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">Sua viagem inesquecível começa aqui.</p>
+
+          {/* Form */}
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
+                  E-mail de Acesso
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <Mail className="h-4 w-4" />
+                  </div>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="block w-full pl-10 pr-4 py-3 bg-slate-950/60 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-xs font-medium transition-all"
+                    placeholder="seu.email@exemplo.com"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5 pl-1 pr-1">
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    Senha
+                  </label>
+                  <span className="text-[10px] text-slate-500">Padrão inicial: 123456</span>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <Lock className="h-4 w-4" />
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="block w-full pl-10 pr-4 py-3 bg-slate-950/60 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-xs font-medium transition-all font-mono"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {errorMsg && (
+              <div className="flex items-center gap-2.5 text-xs text-red-400 bg-red-950/40 p-3.5 rounded-xl border border-red-900/60 animate-shake">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                <p className="font-semibold">{errorMsg}</p>
+              </div>
+            )}
+
+            {licenseBlockedMsg && (
+              <div className="space-y-2 text-xs bg-red-950/60 p-4 rounded-xl border border-red-800/80 text-red-300">
+                <div className="flex items-center gap-2 font-bold text-red-200">
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                  <span>ACESSO SUSPENSO PELO DESENVOLVEDOR</span>
+                </div>
+                <p className="text-xs text-red-300/90 leading-relaxed">
+                  {licenseBlockedMsg}
+                </p>
+                {systemLicense?.contactDevEmail && (
+                  <div className="pt-2 border-t border-red-800/40 text-[11px] text-red-400">
+                    <p>Suporte técnico: <strong className="font-mono text-white">{systemLicense.contactDevEmail}</strong></p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={cn(
+                "w-full flex items-center justify-center py-3.5 px-4 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 border border-blue-500/50 shadow-md shadow-blue-900/20 active:scale-[0.99] transition-all cursor-pointer",
+                isLoading && "opacity-75 cursor-not-allowed"
+              )}
+            >
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Verificando credenciais...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <span>Entrar no Sistema</span>
+                  <ArrowRight className="w-4 h-4" />
+                </span>
+              )}
+            </button>
+          </form>
+
+          {/* Clean Quick Credential Hints */}
+          <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
+            <span className="flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-blue-400" /> Agência ou Viajante
+            </span>
+            <span className="text-slate-400 font-mono">v1.2.0 • Realizze</span>
           </div>
         </div>
-
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <label className="sr-only">E-mail</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className="h-4 w-4 text-slate-400" />
-                </div>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-xs text-xs font-medium"
-                  placeholder="Seu e-mail"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="sr-only">Senha</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="h-4 w-4 text-slate-400" />
-                </div>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-xs text-xs font-medium"
-                  placeholder="Sua senha"
-                />
-              </div>
-            </div>
-          </div>
-
-          {errorMsg && (
-            <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 p-3 rounded-lg border border-red-200 dark:border-red-900">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <p className="font-semibold">{errorMsg}</p>
-            </div>
-          )}
-
-          {licenseBlockedMsg && (
-            <div className="space-y-2 text-xs bg-red-900/20 dark:bg-red-950/60 p-4 rounded-xl border border-red-600/40 text-red-700 dark:text-red-300 animate-pulse">
-              <div className="flex items-center gap-2 font-bold text-red-800 dark:text-red-200">
-                <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                <span>ACESSO SUSPENSO PELO DESENVOLVEDOR</span>
-              </div>
-              <p className="text-xs text-red-600 dark:text-red-300/90 leading-relaxed font-medium">
-                {licenseBlockedMsg}
-              </p>
-              {systemLicense?.contactDevEmail && (
-                <div className="pt-2 border-t border-red-800/30 text-[11px] text-red-800 dark:text-red-400">
-                  <p>Contato técnico: <strong>{systemLicense.contactDevEmail}</strong></p>
-                  {systemLicense.contactDevWhatsapp && (
-                    <p>WhatsApp: <strong>{systemLicense.contactDevWhatsapp}</strong></p>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between px-1">
-            <a href="#" className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">Esqueceu a senha?</a>
-          </div>
-
-
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className={cn(
-              "group relative w-full flex justify-center py-3 px-4 border border-slate-900 dark:border-slate-100 text-xs font-semibold rounded-lg text-white dark:text-slate-900 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white focus:outline-none transition-all shadow-xs",
-              isLoading ? "opacity-70 cursor-not-allowed" : "active:translate-y-0.5"
-            )}
-          >
-            {isLoading ? (
-              <span className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Entrando...
-              </span>
-            ) : (
-              <span className="flex items-center tracking-wide">
-                Acessar Plataforma
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </span>
-            )}
-          </button>
-        </form>
       </div>
     </div>
   );

@@ -1,207 +1,257 @@
-import React, { useState, useEffect } from 'react';
-import { Briefcase, CheckCircle2, Circle, Search, Plus, CloudRain, Sun, Snowflake } from 'lucide-react';
+import React, { useState } from 'react';
+import { Briefcase, CheckCircle2, Circle, Plus, Trash2, RotateCcw, Sparkles } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { useApp } from '../../context/AppContext';
 
 interface LuggageItem {
   id: string;
-  name: string;
-  category: string;
+  category: 'documentos' | 'roupas' | 'eletronicos' | 'higiene' | 'outros';
+  title: string;
   isPacked: boolean;
 }
 
-const INITIAL_ITEMS: LuggageItem[] = [
-  { id: '1', name: 'Passaporte', category: 'Documentos', isPacked: false },
-  { id: '2', name: 'Cartões de Crédito', category: 'Documentos', isPacked: true },
-  { id: '3', name: 'Seguro Viagem', category: 'Documentos', isPacked: false },
-  { id: '4', name: 'Camisetas', category: 'Roupas', isPacked: false },
-  { id: '5', name: 'Calças', category: 'Roupas', isPacked: false },
-  { id: '6', name: 'Jaqueta Impermeável', category: 'Roupas (Clima)', isPacked: false },
-  { id: '7', name: 'Protetor Solar', category: 'Higiene', isPacked: false },
-  { id: '8', name: 'Escova de Dentes', category: 'Higiene', isPacked: true },
-  { id: '9', name: 'Carregador Universal', category: 'Eletrônicos', isPacked: false },
+const DEFAULT_ITEMS: LuggageItem[] = [
+  { id: '1', category: 'documentos', title: 'Passaporte e RG original', isPacked: false },
+  { id: '2', category: 'documentos', title: 'Cartão de crédito habilitado para exterior', isPacked: false },
+  { id: '3', category: 'documentos', title: 'Vouchers de hotel e passagens salvas', isPacked: false },
+  { id: '4', category: 'documentos', title: 'Apólice do Seguro Viagem', isPacked: false },
+  { id: '5', category: 'eletronicos', title: 'Carregador de celular e cabo extra', isPacked: false },
+  { id: '6', category: 'eletronicos', title: 'Adaptador universal de tomadas', isPacked: false },
+  { id: '7', category: 'eletronicos', title: 'Powerbank (Bateria portátil na mala de mão)', isPacked: false },
+  { id: '8', category: 'higiene', title: 'Kit remédios básicos de uso pessoal', isPacked: false },
+  { id: '9', category: 'higiene', title: 'Escova e pasta de dente', isPacked: false },
+  { id: '10', category: 'roupas', title: 'Casaco quente / corta-vento', isPacked: false },
+  { id: '11', category: 'roupas', title: 'Calçados confortáveis para caminhada', isPacked: false },
+  { id: '12', category: 'roupas', title: 'Roupas íntimas e meias suficientes', isPacked: false },
 ];
 
 export default function LuggageChecklistScreen() {
-  const { currentUserEmail } = useApp();
-  const storageKey = `luggage_items_${currentUserEmail || 'default'}`;
-
   const [items, setItems] = useState<LuggageItem[]>(() => {
     try {
-      const saved = localStorage.getItem(storageKey);
-      return saved ? JSON.parse(saved) : INITIAL_ITEMS;
-    } catch (e) {
-      return INITIAL_ITEMS;
+      const saved = localStorage.getItem('trip_luggage_checklist');
+      return saved ? JSON.parse(saved) : DEFAULT_ITEMS;
+    } catch {
+      return DEFAULT_ITEMS;
     }
   });
 
-  useEffect(() => {
+  const [newItemTitle, setNewItemTitle] = useState('');
+  const [newItemCategory, setNewItemCategory] = useState<LuggageItem['category']>('outros');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  const saveItems = (updated: LuggageItem[]) => {
+    setItems(updated);
     try {
-      localStorage.setItem(storageKey, JSON.stringify(items));
+      localStorage.setItem('trip_luggage_checklist', JSON.stringify(updated));
     } catch (e) {
-      console.warn("Error saving luggage items:", e);
+      console.warn(e);
     }
-  }, [items, storageKey]);
-  const [search, setSearch] = useState('');
-  const [newItemName, setNewItemName] = useState('');
-  const [activeWeather, setActiveWeather] = useState<'all' | 'rain' | 'sun' | 'cold'>('all');
+  };
 
   const toggleItem = (id: string) => {
-    setItems(items.map(item => item.id === id ? { ...item, isPacked: !item.isPacked } : item));
+    const updated = items.map(item => item.id === id ? { ...item, isPacked: !item.isPacked } : item);
+    saveItems(updated);
+  };
+
+  const deleteItem = (id: string) => {
+    const updated = items.filter(item => item.id !== id);
+    saveItems(updated);
   };
 
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newItemName.trim()) return;
-    setItems([
-      { id: Date.now().toString(), name: newItemName, category: 'Outros', isPacked: false },
-      ...items
-    ]);
-    setNewItemName('');
+    if (!newItemTitle.trim()) return;
+
+    const newItem: LuggageItem = {
+      id: Date.now().toString(),
+      title: newItemTitle.trim(),
+      category: newItemCategory,
+      isPacked: false,
+    };
+
+    saveItems([...items, newItem]);
+    setNewItemTitle('');
   };
 
-  const filteredItems = items.filter(item => 
-    item.name.toLowerCase().includes(search.toLowerCase()) &&
-    (activeWeather === 'all' || 
-     (activeWeather === 'rain' && item.category.includes('Clima')) ||
-     (activeWeather === 'sun' && item.name.toLowerCase().includes('sol')) ||
-     (activeWeather === 'cold' && item.name.toLowerCase().includes('jaqueta'))) // Simplified mock logic
-  );
+  const resetChecklist = () => {
+    if (confirm('Deseja restaurar a lista padrão de itens da mala?')) {
+      saveItems(DEFAULT_ITEMS);
+    }
+  };
 
-  const groupedItems = filteredItems.reduce((acc, curr) => {
-    if (!acc[curr.category]) acc[curr.category] = [];
-    acc[curr.category].push(curr);
-    return acc;
-  }, {} as Record<string, LuggageItem[]>);
+  const totalPacked = items.filter(i => i.isPacked).length;
+  const progressPct = items.length > 0 ? Math.round((totalPacked / items.length) * 100) : 0;
 
-  const packedCount = items.filter(i => i.isPacked).length;
-  const progress = Math.round((packedCount / items.length) * 100) || 0;
+  const filteredItems = items.filter(i => selectedCategory === 'all' || i.category === selectedCategory);
 
   return (
-    <div className="min-h-full bg-slate-50 dark:bg-slate-950 px-4 md:px-8 py-6 relative text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-full bg-slate-50 dark:bg-slate-950 px-4 sm:px-6 py-8 text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <div className="w-full max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Checklist de Bagagem</h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Organize seus pertences e não esqueça nada para a viagem.</p>
-      </div>
-
-      {/* Progress Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-white shadow-xs">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="bg-slate-800 border border-slate-700 p-2.5 rounded-lg inline-block mb-3">
-              <Briefcase className="w-5 h-5 text-blue-400" />
-            </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-1">{progress}% Pronto</h2>
-            <p className="text-xs text-slate-400 font-semibold">{packedCount} de {items.length} itens guardados na mala</p>
-          </div>
-          
-          {/* Circular Progress */}
-          <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
-            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-800" />
-              <circle 
-                cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" 
-                strokeDasharray="251.2" 
-                strokeDashoffset={251.2 - (251.2 * progress) / 100}
-                className={cn("transition-all duration-1000 ease-out", progress === 100 ? "text-emerald-400" : "text-blue-500")}
-              />
-            </svg>
-            <div className="absolute flex items-center justify-center">
-              {progress === 100 ? <CheckCircle2 className="w-7 h-7 text-emerald-400" /> : <Briefcase className="w-7 h-7 text-blue-400 opacity-50" />}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Smart Filters (Weather) */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
-        <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-slate-100">Filtros Inteligentes por Clima</h3>
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <button 
-            onClick={() => setActiveWeather('all')}
-            className={cn("shrink-0 px-3.5 py-1.5 rounded-lg font-semibold text-xs transition-all border", activeWeather === 'all' ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-xs" : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700")}
-          >
-            Todos
-          </button>
-          <button 
-            onClick={() => setActiveWeather('rain')}
-            className={cn("shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-semibold text-xs transition-all border", activeWeather === 'rain' ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-xs" : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700")}
-          >
-            <CloudRain className="w-3.5 h-3.5 text-blue-500" /> Chuva
-          </button>
-          <button 
-            onClick={() => setActiveWeather('sun')}
-            className={cn("shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-semibold text-xs transition-all border", activeWeather === 'sun' ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-xs" : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700")}
-          >
-            <Sun className="w-3.5 h-3.5 text-amber-500" /> Sol
-          </button>
-          <button 
-            onClick={() => setActiveWeather('cold')}
-            className={cn("shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-semibold text-xs transition-all border", activeWeather === 'cold' ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-xs" : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700")}
-          >
-            <Snowflake className="w-3.5 h-3.5 text-cyan-500" /> Frio
-          </button>
-        </div>
-      </div>
-
-      {/* Add & Search */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <form onSubmit={handleAddItem} className="relative">
-          <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none">
-            <Plus className="h-4 w-4 text-slate-400" />
-          </div>
-          <input
-            type="text"
-            value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg font-medium text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-xs"
-            placeholder="Adicionar novo item..."
-          />
-        </form>
         
-        <div className="relative">
-          <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-slate-400" />
+        {/* Header */}
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+              Checklist de Bagagem
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              Organize seus pertences essenciais antes de fechar a mala.
+            </p>
           </div>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg font-medium text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-xs"
-            placeholder="Buscar na mala..."
-          />
-        </div>
-      </div>
 
-      {/* List */}
-      <div className="space-y-6">
-        {Object.entries(groupedItems).map(([category, catItems]: [string, LuggageItem[]]) => (
-          <div key={category}>
-            <h3 className="font-bold text-slate-900 dark:text-slate-200 text-xs uppercase tracking-wider mb-2.5 px-0.5">{category}</h3>
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
-              {catItems.map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => toggleItem(item.id)}
-                  className="w-full flex items-center gap-3.5 p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-left"
-                >
-                  <div className={cn("shrink-0 w-5 h-5 rounded-md border flex items-center justify-center transition-all", item.isPacked ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600")}>
-                    {item.isPacked && <CheckCircle2 className="w-4 h-4" />}
-                  </div>
-                  <span className={cn("font-medium text-xs transition-all", item.isPacked ? "text-slate-400 dark:text-slate-500 line-through decoration-slate-300 dark:decoration-slate-600" : "text-slate-900 dark:text-slate-100")}>
-                    {item.name}
-                  </span>
-                </button>
-              ))}
+          <button
+            onClick={resetChecklist}
+            className="text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 flex items-center gap-1.5 self-start sm:self-auto px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Restaurar Lista</span>
+          </button>
+        </header>
+
+        {/* Progress Card */}
+        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-blue-500/10 relative overflow-hidden">
+          <div className="absolute right-0 bottom-0 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="space-y-4 relative z-10">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-white/20 rounded-xl">
+                  <Briefcase className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-100">Status da Mala</span>
+              </div>
+              <span className="text-xs font-extrabold text-white bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
+                {totalPacked} de {items.length} itens prontos
+              </span>
+            </div>
+
+            <div className="flex items-baseline gap-3">
+              <div className="text-4xl sm:text-5xl font-black tracking-tight text-white">{progressPct}%</div>
+              <span className="text-xs text-blue-100 font-medium">
+                {progressPct === 100 ? 'Mala 100% pronta! Boa viagem!' : 'Continue conferindo os itens'}
+              </span>
+            </div>
+
+            <div className="w-full bg-black/20 rounded-full h-3 overflow-hidden p-0.5 border border-white/20">
+              <div 
+                className="bg-emerald-400 h-full rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${progressPct}%` }}
+              />
             </div>
           </div>
-        ))}
-        {Object.keys(groupedItems).length === 0 && (
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs text-center text-slate-500 dark:text-slate-400 text-xs font-medium">Nenhum item encontrado.</div>
-        )}
-      </div>
+        </div>
+
+        {/* Add Item Form */}
+        <form onSubmit={handleAddItem} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+          <h2 className="font-extrabold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Plus className="w-4 h-4 text-blue-600" /> Adicionar Item à Bagagem
+          </h2>
+
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <input 
+              type="text"
+              value={newItemTitle}
+              onChange={e => setNewItemTitle(e.target.value)}
+              placeholder="Ex: Protetor solar, Óculos de sol..."
+              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none placeholder:text-slate-400"
+            />
+            
+            <select
+              value={newItemCategory}
+              onChange={e => setNewItemCategory(e.target.value as LuggageItem['category'])}
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-3 py-3 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+            >
+              <option value="documentos">Documentos</option>
+              <option value="roupas">Roupas</option>
+              <option value="eletronicos">Eletrônicos</option>
+              <option value="higiene">Higiene</option>
+              <option value="outros">Outros</option>
+            </select>
+
+            <button
+              type="submit"
+              className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-blue-500/20 active:scale-95 shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Adicionar</span>
+            </button>
+          </div>
+        </form>
+
+        {/* Filter Categories */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {[
+            { id: 'all', label: 'Todos' },
+            { id: 'documentos', label: 'Documentos' },
+            { id: 'eletronicos', label: 'Eletrônicos' },
+            { id: 'roupas', label: 'Roupas' },
+            { id: 'higiene', label: 'Higiene' },
+            { id: 'outros', label: 'Outros' },
+          ].map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={cn(
+                "px-3.5 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap border shrink-0 cursor-pointer shadow-xs",
+                selectedCategory === cat.id
+                  ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100"
+                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-300"
+              )}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Item List */}
+        <div className="space-y-2">
+          {filteredItems.map(item => (
+            <article 
+              key={item.id}
+              onClick={() => toggleItem(item.id)}
+              className={cn(
+                "bg-white dark:bg-slate-900 p-4 rounded-2xl border transition-all flex items-center justify-between gap-3 shadow-xs cursor-pointer select-none",
+                item.isPacked 
+                  ? "border-slate-200/60 dark:border-slate-800/40 bg-slate-50/60 dark:bg-slate-950/40 opacity-60" 
+                  : "border-slate-200 dark:border-slate-800 hover:shadow-md hover:border-blue-200"
+              )}
+            >
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <button
+                  type="button"
+                  className="shrink-0 p-0.5 text-slate-400"
+                  onClick={(e) => { e.stopPropagation(); toggleItem(item.id); }}
+                >
+                  {item.isPacked ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500 fill-emerald-100 dark:fill-emerald-950" />
+                  ) : (
+                    <Circle className="w-5 h-5 text-slate-300 dark:text-slate-600 hover:text-blue-500" />
+                  )}
+                </button>
+                <div className="truncate">
+                  <span className={cn(
+                    "text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 block truncate",
+                    item.isPacked && "line-through text-slate-400 dark:text-slate-500 font-normal"
+                  )}>
+                    {item.title}
+                  </span>
+                  <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">
+                    {item.category}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }}
+                className="p-2 text-slate-400 hover:text-red-500 transition-colors shrink-0 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/40"
+                title="Remover item"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </article>
+          ))}
+        </div>
+
       </div>
     </div>
   );

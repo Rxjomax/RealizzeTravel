@@ -161,13 +161,13 @@ const LANGUAGES_DATABASE: Record<string, LanguageData> = {
 };
 
 const CATEGORIES = [
-  { id: 'all', label: 'Todas as Frases', icon: MessageCircle },
-  { id: 'emergency', label: 'Emergência & Saúde', icon: ShieldAlert },
-  { id: 'restaurant', label: 'Restaurante & Café', icon: Utensils },
-  { id: 'transport', label: 'Transporte & Direções', icon: Navigation },
-  { id: 'shopping', label: 'Compras & Preço', icon: ShoppingBag },
-  { id: 'hotel', label: 'Hotel & Estadia', icon: Hotel },
-  { id: 'basics', label: 'Básico & Cortesia', icon: Sparkles },
+  { id: 'all', label: 'Todas', icon: MessageCircle },
+  { id: 'emergency', label: 'Emergência', icon: ShieldAlert },
+  { id: 'restaurant', label: 'Restaurante', icon: Utensils },
+  { id: 'transport', label: 'Transporte', icon: Navigation },
+  { id: 'shopping', label: 'Compras', icon: ShoppingBag },
+  { id: 'hotel', label: 'Hotel', icon: Hotel },
+  { id: 'basics', label: 'Básico', icon: Sparkles },
 ];
 
 const detectLangFromDestination = (dest?: string): string => {
@@ -185,8 +185,8 @@ const detectLangFromDestination = (dest?: string): string => {
 export default function PhrasebookScreen() {
   const { itineraries, currentUserEmail } = useApp();
 
-  const userItineraries = itineraries.filter(it => it.clientEmail === currentUserEmail);
-  const activeItinerary = userItineraries.length > 0 ? userItineraries[0] : itineraries[0];
+  const userItinerariesOk = itineraries.filter(it => it.clientEmail === currentUserEmail);
+  const activeItinerary = userItinerariesOk.length > 0 ? userItinerariesOk[0] : itineraries[0];
 
   const autoLangKey = detectLangFromDestination(activeItinerary?.destination);
   const [selectedLangKey, setSelectedLangKey] = useState<string>(autoLangKey);
@@ -210,14 +210,11 @@ export default function PhrasebookScreen() {
 
   const langData = LANGUAGES_DATABASE[selectedLangKey] || LANGUAGES_DATABASE['french'];
 
-  // Audio element reference for native Google TTS playback
   const [activeAudio, setActiveAudio] = useState<HTMLAudioElement | null>(null);
 
-  // High quality Native Audio Playback
   const playAudio = (text: string, id: string) => {
     if (!text.trim()) return;
 
-    // Stop previous audio if playing
     if (activeAudio) {
       activeAudio.pause();
       activeAudio.currentTime = 0;
@@ -242,7 +239,6 @@ export default function PhrasebookScreen() {
       });
   };
 
-  // Fallback to SpeechSynthesis if offline or audio blocked
   const fallbackWebSpeech = (text: string, id: string) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -265,7 +261,6 @@ export default function PhrasebookScreen() {
     }
   };
 
-  // Load voices when component mounts
   useEffect(() => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.getVoices();
@@ -281,7 +276,6 @@ export default function PhrasebookScreen() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Instant Translator handler for custom phrases with live MyMemory API
   const handleCustomTranslate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customText.trim()) return;
@@ -289,7 +283,6 @@ export default function PhrasebookScreen() {
     setIsTranslating(true);
     const targetCode = langData.code.toLowerCase();
 
-    // 1. Try finding direct match in internal database first
     const match = langData.phrases.find(p => p.pt.toLowerCase() === customText.toLowerCase().trim() || p.pt.toLowerCase().includes(customText.toLowerCase().trim()));
     if (match) {
       setCustomTranslated(match.translated);
@@ -297,7 +290,6 @@ export default function PhrasebookScreen() {
       return;
     }
 
-    // 2. Fetch live translation from MyMemory API (Free & reliable for travel)
     try {
       const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(customText)}&langpair=pt|${targetCode}`);
       if (response.ok) {
@@ -312,14 +304,12 @@ export default function PhrasebookScreen() {
       }
     } catch (err) {
       console.warn('Fallback de tradução:', err);
-      // Fallback
       setCustomTranslated(`${customText} (${langData.name})`);
     } finally {
       setIsTranslating(false);
     }
   };
 
-  // Filter phrases
   const filteredPhrases = langData.phrases.filter(phrase => {
     const matchesCategory = selectedCategory === 'all' || phrase.category === selectedCategory;
     const matchesSearch = phrase.pt.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -329,99 +319,94 @@ export default function PhrasebookScreen() {
   });
 
   return (
-    <div className="min-h-full bg-slate-50 px-4 md:px-8 py-6 relative">
+    <div className="min-h-full bg-slate-50 dark:bg-slate-950 px-4 sm:px-6 py-8 text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <div className="w-full max-w-4xl mx-auto space-y-6">
 
-        {/* Header & Destination Banner */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 md:p-6 text-white shadow-xs">
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-slate-800 border border-slate-700 rounded-lg">
-                  <Languages className="w-5 h-5 text-amber-400" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold tracking-tight">Guia de Frases & Tradutor</h1>
-                  <p className="text-xs text-slate-400 font-medium">Expressões essenciais para comunicação na viagem</p>
-                </div>
-              </div>
-
-              {activeItinerary?.destination && (
-                <div className="bg-slate-800 border border-slate-700 px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 text-slate-200 self-start sm:self-auto">
-                  <MapPin className="w-3.5 h-3.5 text-amber-400" />
-                  {activeItinerary.destination}
-                </div>
-              )}
-            </div>
-
-            {/* Language Selection Pills */}
-            <div className="flex items-center gap-2 flex-wrap pt-0.5">
-              <span className="text-xs font-semibold text-slate-400 mr-1">Idioma de Destino:</span>
-              {Object.entries(LANGUAGES_DATABASE).map(([key, lang]) => (
-                <button
-                  key={key}
-                  onClick={() => setSelectedLangKey(key)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 border",
-                    selectedLangKey === key 
-                      ? "bg-white text-slate-900 border-white shadow-xs" 
-                      : "bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-800"
-                  )}
-                >
-                  <span>{lang.flag}</span>
-                  <span>{lang.name}</span>
-                </button>
-              ))}
-            </div>
+        {/* Header */}
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+              Guia de Frases & Tradutor
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              Pronúncias essenciais e traduções rápidas para a sua viagem.
+            </p>
           </div>
+
+          {activeItinerary?.destination && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-2 rounded-2xl flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 shadow-xs self-start sm:self-auto">
+              <MapPin className="w-4 h-4 text-blue-500" />
+              <span>{activeItinerary.destination}</span>
+            </div>
+          )}
+        </header>
+
+        {/* Language Selection Filter */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-bold text-slate-400 mr-2 uppercase tracking-wider">Idioma:</span>
+          {Object.entries(LANGUAGES_DATABASE).map(([key, lang]) => (
+            <button
+              key={key}
+              onClick={() => setSelectedLangKey(key)}
+              className={cn(
+                "px-3.5 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 border shadow-xs cursor-pointer",
+                selectedLangKey === key 
+                  ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20" 
+                  : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-blue-300"
+              )}
+            >
+              <span className="text-base">{lang.flag}</span>
+              <span>{lang.name}</span>
+            </button>
+          ))}
         </div>
 
         {/* Quick Instant Translator Input */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-slate-100">Tradutor Instantâneo</h3>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+            <Sparkles className="w-5 h-5 text-blue-600" />
+            <h2 className="font-extrabold text-base text-slate-900 dark:text-slate-100">Tradutor Instantâneo</h2>
           </div>
 
-          <form onSubmit={handleCustomTranslate} className="flex gap-2">
+          <form onSubmit={handleCustomTranslate} className="flex flex-col sm:flex-row gap-2.5">
             <input 
               type="text"
               value={customText}
               onChange={e => setCustomText(e.target.value)}
-              placeholder={`Digite qualquer frase em Português (ex: Onde fica a farmácia?)...`}
-              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 placeholder:text-slate-400"
+              placeholder={`Digite qualquer frase em Português...`}
+              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none placeholder:text-slate-400"
             />
             <button
               type="submit"
               disabled={isTranslating}
-              className="px-4 py-2 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 text-xs font-semibold rounded-lg shadow-xs transition-all active:translate-y-0.5 shrink-0 flex items-center gap-1.5 border border-slate-900 dark:border-slate-100"
+              className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-2xl transition-all shadow-md shadow-blue-500/20 active:scale-95 shrink-0 flex items-center justify-center gap-2 cursor-pointer"
             >
               {isTranslating ? (
                 <>
-                  <span className="w-3.5 h-3.5 border-2 border-white/30 dark:border-slate-900/30 border-t-white dark:border-t-slate-900 rounded-full animate-spin" />
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                   <span>Traduzindo...</span>
                 </>
               ) : (
-                <span>Traduzir p/ {langData.name}</span>
+                <span>Traduzir ({langData.name})</span>
               )}
             </button>
           </form>
 
           {customTranslated && (
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3 animate-in fade-in">
+            <div className="p-4 bg-blue-50/50 dark:bg-blue-950/40 rounded-2xl border border-blue-100 dark:border-blue-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Tradução em {langData.name}:</p>
-                <p className="text-base font-bold text-slate-900 dark:text-slate-100 mt-0.5">{customTranslated}</p>
+                <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Tradução em {langData.name}:</p>
+                <p className="text-base font-extrabold text-slate-900 dark:text-slate-100 mt-0.5">{customTranslated}</p>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                 <button
                   onClick={() => playAudio(customTranslated, 'custom')}
-                  className="px-3 py-2 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 rounded-lg shadow-xs transition-all active:translate-y-0.5 flex items-center gap-1.5 text-xs font-semibold border border-slate-900 dark:border-slate-100"
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all shadow-xs flex items-center gap-1.5 text-xs font-bold cursor-pointer"
                   title="Ouvir pronúncia"
                 >
-                  <Volume2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Ouvir</span>
+                  <Volume2 className="w-4 h-4" />
+                  <span>Ouvir</span>
                 </button>
 
                 <button
@@ -432,27 +417,27 @@ export default function PhrasebookScreen() {
                     translated: customTranslated,
                     phonetic: langData.name
                   })}
-                  className="px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg transition-all active:translate-y-0.5 flex items-center gap-1.5 text-xs font-semibold"
+                  className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer"
                   title="Mostrar em Tela Cheia"
                 >
-                  <Maximize2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Mostrar</span>
+                  <Maximize2 className="w-4 h-4" />
+                  <span>Expandir</span>
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Search & Category Filter Bar */}
+        {/* Search & Category Filter */}
         <div className="space-y-3">
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
             <input 
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder={`Buscar expressão em Português ou ${langData.name}...`}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-slate-100 font-medium placeholder:text-slate-400 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-4 py-3 text-xs font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none shadow-xs"
             />
           </div>
 
@@ -464,10 +449,10 @@ export default function PhrasebookScreen() {
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 border shrink-0",
+                    "px-3.5 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 border shrink-0 cursor-pointer shadow-xs",
                     selectedCategory === cat.id
-                      ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100 shadow-xs"
-                      : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-300"
                   )}
                 >
                   <IconComp className="w-3.5 h-3.5" />
@@ -481,29 +466,27 @@ export default function PhrasebookScreen() {
         {/* Phrase Cards Grid */}
         <div className="space-y-3">
           {filteredPhrases.length === 0 ? (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs text-center">
-              <Languages className="w-7 h-7 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-              <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">Nenhuma frase encontrada para esta busca.</p>
+            <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 text-center shadow-xs">
+              <Languages className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+              <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold">Nenhuma frase encontrada para esta busca.</p>
             </div>
           ) : (
             filteredPhrases.map(phrase => (
-              <div 
+              <article 
                 key={phrase.id} 
-                className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-blue-200 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                      {phrase.pt}
-                    </span>
-                  </div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    {phrase.pt}
+                  </span>
 
-                  <p className="text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                     {phrase.translated}
                   </p>
 
-                  <p className="text-xs font-medium text-slate-400 italic">
-                    Pronúncia: <span className="text-slate-700 dark:text-slate-300 font-semibold not-italic">{phrase.phonetic}</span>
+                  <p className="text-xs text-slate-500 italic">
+                    Pronúncia: <span className="text-blue-600 dark:text-blue-400 font-semibold not-italic">{phrase.phonetic}</span>
                   </p>
                 </div>
 
@@ -512,77 +495,77 @@ export default function PhrasebookScreen() {
                   <button
                     onClick={() => playAudio(phrase.translated, phrase.id)}
                     className={cn(
-                      "px-3 py-2 rounded-lg border transition-all active:translate-y-0.5 flex items-center gap-1.5 text-xs font-semibold",
+                      "px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold shadow-xs cursor-pointer",
                       playingId === phrase.id 
-                        ? "bg-amber-500 text-white border-amber-500" 
-                        : "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100 hover:bg-slate-800 dark:hover:bg-white"
+                        ? "bg-indigo-600 text-white" 
+                        : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20"
                     )}
                     title="Ouvir áudio da pronúncia"
                   >
-                    <Volume2 className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Ouvir</span>
+                    <Volume2 className="w-4 h-4" />
+                    <span>Ouvir</span>
                   </button>
 
                   <button
                     onClick={() => handleCopy(phrase.translated, phrase.id)}
-                    className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg transition-all active:translate-y-0.5"
+                    className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl transition-all cursor-pointer"
                     title="Copiar texto"
                   >
-                    {copiedId === phrase.id ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    {copiedId === phrase.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                   </button>
 
                   <button
                     onClick={() => setFullScreenPhrase(phrase)}
-                    className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg transition-all active:translate-y-0.5 flex items-center gap-1.5 text-xs font-semibold"
+                    className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer"
                     title="Mostrar em tela cheia para o atendente"
                   >
-                    <Maximize2 className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Mostrar</span>
+                    <Maximize2 className="w-4 h-4" />
+                    <span>Expandir</span>
                   </button>
                 </div>
-              </div>
+              </article>
             ))
           )}
         </div>
 
-        {/* Fullscreen Big Text Modal for Showing to Locals */}
+        {/* Fullscreen Modal */}
         {fullScreenPhrase && (
-          <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md p-6 flex flex-col justify-between animate-in fade-in">
+          <div className="fixed inset-0 z-50 bg-slate-950/95 p-6 flex flex-col justify-between animate-in fade-in">
             <div className="flex justify-between items-center text-white">
               <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
                 Mostrar para o Atendente / Local
               </span>
               <button 
                 onClick={() => setFullScreenPhrase(null)}
-                className="p-2 bg-white/10 rounded-full text-white hover:bg-white/20"
+                className="p-2 rounded-2xl bg-white/10 text-white hover:bg-white/20 cursor-pointer"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
 
-            <div className="text-center space-y-6 my-auto px-4">
-              <p className="text-sm font-extrabold text-blue-400 uppercase tracking-widest">
+            <div className="text-center space-y-6 my-auto px-4 max-w-2xl mx-auto">
+              <p className="text-sm font-bold text-blue-400 uppercase tracking-widest">
                 {fullScreenPhrase.pt}
               </p>
 
-              <h2 className="text-4xl md:text-6xl font-black text-white leading-tight tracking-tight">
+              <h2 className="text-4xl sm:text-6xl font-black text-white leading-tight">
                 {fullScreenPhrase.translated}
               </h2>
 
-              <p className="text-sm text-slate-400 italic">
-                Pronúncia: {fullScreenPhrase.phonetic}
+              <p className="text-base text-slate-400">
+                Pronúncia: <span className="text-white font-bold">{fullScreenPhrase.phonetic}</span>
               </p>
 
               <button
                 onClick={() => playAudio(fullScreenPhrase.translated, fullScreenPhrase.id)}
-                className="mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm rounded-2xl inline-flex items-center gap-2 shadow-xl active:scale-95"
+                className="mt-6 px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm rounded-2xl inline-flex items-center gap-2 shadow-lg shadow-blue-500/30 active:scale-95 cursor-pointer"
               >
-                <Volume2 className="w-5 h-5" /> Tocar Áudio Alto
+                <Volume2 className="w-5 h-5" /> Tocar Áudio
               </button>
             </div>
 
             <p className="text-center text-xs text-slate-500">
-              Toque no X no topo para fechar
+              Toque no X no topo para fechar a tela cheia
             </p>
           </div>
         )}

@@ -98,8 +98,11 @@ export default function App() {
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="clone" element={<CloneItinerary />} />
               <Route path="create" element={<CreateItineraryScreen />} />
+              <Route path="itineraries" element={<CreateItineraryScreen />} />
               <Route path="feedback" element={<FeedbackModule />} />
+              <Route path="feedbacks" element={<FeedbackModule />} />
               <Route path="crm" element={<ClientCRMScreen />} />
+              <Route path="clients" element={<ClientCRMScreen />} />
               <Route path="finance" element={<AdminFinanceScreen />} />
               <Route path="tasks" element={<AdminTasksScreen />} />
             </Route>
